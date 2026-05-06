@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: telegram_bot_control
+    env_file:
+      - .env
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  
+    networks:
+      - mlops_network
+
+networks:
+  mlops_network:
+    driver: bridge
