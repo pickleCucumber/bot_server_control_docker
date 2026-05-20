@@ -6,9 +6,13 @@ services:
     container_name: telegram_bot_control
     env_file:
       - .env
+    environment:
+      - TZ=Europe/Moscow
     restart: unless-stopped
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock  
+      - /var/run/docker.sock:/var/run/docker.sock 
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro 
     networks:
       - mlops_network
 
