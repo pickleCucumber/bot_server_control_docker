@@ -1,8 +1,12 @@
+
 FROM python:3.11-slim
+
+ENV TZ=Europe/Moscow
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gnupg \
+    tzdata \
     && rm -rf /var/lib/apt/lists/*
 
 
@@ -21,11 +25,13 @@ RUN apt-get install -y --no-install-recommends \
     supervisor \
     && rm -rf /var/lib/apt/lists/*
 
+
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
+
 
 COPY requirements.txt .
 
@@ -36,5 +42,4 @@ COPY logic.py .
 
 ENV PYTHONUNBUFFERED=1
 
-# Запускаем бот
 CMD ["python", "bot.py"]
