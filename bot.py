@@ -23,10 +23,11 @@ import os
 import docker
 load_dotenv()
 API_token = os.getenv("API_token")
+my_id = os.getenv("my_id")
 users = []
-user_id = [505568035]
-users_for_send = [1041069923,505568035, 291931878]
-users_for_calls_send=[5246473268]
+user_id = my_id
+users_for_send = []
+users_for_calls_send=[]
 names = []
 save_users_for_send = []
 save_users_for_calls_send=[]
@@ -292,9 +293,9 @@ async def check_logs(message: Message):
                 
                 await message.answer(response, parse_mode=ParseMode.HTML)
             except Exception as e:
-                await message.answer(f"❌ Ошибка при получении логов {container_name}: {str(e)}")
+                await message.answer(f"Ошибка при получении логов {container_name}: {str(e)}")
     except Exception as e:
-        await message.answer(f"❌ Глобальная ошибка: {str(e)}")
+        await message.answer(f"Глобальная ошибка: {str(e)}")
         
 
 # перезапуск моделек
@@ -317,8 +318,8 @@ async def restart_consoles(message):
 @dp.message(Command('ping'))
 async def send_pong(message):
     pong=""
-    hostname0='192.168.20.81'
-    hostname1='192.168.20.82'
+    hostname0='local_hostname0'
+    hostname1='local_hostname1'
     response = os.system('ping ' + hostname0)
     response1 = os.system('ping ' + hostname1)
     if (response == 0)&(response1 == 0):
@@ -455,9 +456,9 @@ async def check():
     s = crash_process()
     if s:
         try:
-            await bot.send_message(chat_id=505568035, text=f"Упали контейнеры")
+            await bot.send_message(chat_id=my_id, text=f"Упали контейнеры")
             for i in s:
-                await bot.send_message(chat_id=505568035, text=i.to_string())
+                await bot.send_message(chat_id=my_id, text=i.to_string())
         except Exception as e:
             print(e)
 
