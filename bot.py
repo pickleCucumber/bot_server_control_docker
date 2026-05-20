@@ -24,9 +24,9 @@ import docker
 load_dotenv()
 API_token = os.getenv("API_token")
 users = []
-user_id = os.getenv("my_id")
-users_for_send = []
-users_for_calls_send=[]
+user_id = [505568035]
+users_for_send = [1041069923,505568035, 291931878]
+users_for_calls_send=[5246473268]
 names = []
 save_users_for_send = []
 save_users_for_calls_send=[]
@@ -39,7 +39,8 @@ dp = Dispatcher()
 docker_client = docker.from_env()
 # ------------------------------- Настройка логирования ------------------------------- #
 def setup_logging():
-    # основной логгер для приложения
+    """Настройка логирования изменений пользовательских списков"""
+    # Основной логгер для приложения
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -48,9 +49,10 @@ def setup_logging():
             logging.FileHandler('bot.log', encoding='utf-8')
         ]
     )
-    #  логгер для отслеживания изменений списков
+    # Специальный логгер для отслеживания изменений списков
     user_logger = logging.getLogger('user_changes')
     user_logger.setLevel(logging.INFO)
+    # Добавляем обработчик в файл, если ещё не добавлен
     if not user_logger.handlers:
         fh = logging.FileHandler('user_changes.log', encoding='utf-8')
         fh.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
@@ -233,10 +235,12 @@ async def Service(message):
 async def all_Service(message):
     data_OK, data_time =services()
 
+    # Конвертируем DataFrame в форматированную строку
     def format_dataframe_to_string(df):
         table_string = df.to_string(index=False)
         return f"<pre>{table_string}</pre>"
 
+    # Отправляем сообщение
     formatted_table0 = format_dataframe_to_string(data_OK[['ExternalServiceName','Процент ОК', 'Процент ERROR','Процент TIMEOUT']])
     formatted_table1 = format_dataframe_to_string(data_time)
 
@@ -270,6 +274,28 @@ async def start_consoles(message):
                 await message.answer(f"Ошибка при запуске {name}: {e}")
     except Exception as e:
         await message.answer(f"Глобальная ошибка: {e}")
+
+# проверка логов процессов
+@dp.message(Command('logs'))
+async def check_logs(message: Message):
+    await message.answer("Получаю логи процессов...")
+    
+    try:
+        for container_name in DOCKER_CONTAINERS:
+            try:
+                log_data = get_container_logs(container_name, lines=30)
+                
+                status_emoji = "✅" if log_data['status'] == 'running' else "⚠️"
+                
+                response = f"{status_emoji} <b>{log_data['name']}</b> ({log_data['status']})\n\n"
+                response += "<pre>" + log_data['logs'][-1000:] + "</pre>"  # последние 1000 символов
+                
+                await message.answer(response, parse_mode=ParseMode.HTML)
+            except Exception as e:
+                await message.answer(f"❌ Ошибка при получении логов {container_name}: {str(e)}")
+    except Exception as e:
+        await message.answer(f"❌ Глобальная ошибка: {str(e)}")
+        
 
 # перезапуск моделек
 @dp.message(Command('restart_consoles'))
@@ -321,8 +347,6 @@ async def check_anyway(message):
         except Exception as e:
             print(e)
     else: await message.answer(text="Все работает")
-
-
 def exec_cmd(command):
     try:
         sub_ = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
@@ -331,6 +355,34 @@ def exec_cmd(command):
     except:
         return "Nice cock!"
 
+
+#@dp.message(Command("cmd"))
+#async def cmd_set(message: Message,command: CommandObject):
+#    if (user_id == message.chat.id): #проверяем, что пишет именно владелец
+
+        # Пробуем разделить аргументы на две части по первому встречному пробелу
+#        if command.args is None:
+#            await message.answer("Ошибка: не переданы аргументы")
+#        else:
+#            try:
+#                print('command.args.split(" ")', command.args.split(" "))
+#                command_to = command.args.split(" ")
+#                command_to_cmd = " ".join(str(element) for element in command_to)
+#                p = exec_cmd(command_to_cmd)#.decode('utf8')
+#                print(p[:4096])
+#                if len(p) > 4096:
+#                    await message.answer(p[:1488])
+#                else:
+#                    await message.answer(p)
+#            # Если получилось меньше двух частей, вылетит ValueError
+#            except:
+#                await message.answer(
+#                    "Ошибка: неправильный формат команды. Пример:\n"
+#                    "/cmd <message>"
+#                )
+#                return
+#    else:
+#        await message.answer(f"У юзера {message.chat.id} нет прав доступа")
 
 
 """------------------рассылка-------------------------"""
@@ -418,8 +470,9 @@ async def main() -> None:
                      f"save_users_for_calls_send={save_users_for_calls_send}")
 
     # диспетчеризация событий запуска
-    scheduler = AsyncIOScheduler()
-    timezone="Europe/Moscow"
+    tz="Europe/Moscow"
+    scheduler = AsyncIOScheduler(timezone=tz)
+    
 
     scheduler.add_job(report0, trigger="cron", hour=10, minute=00, start_date=datetime.now())
     scheduler.add_job(report1, trigger="cron", hour=10, minute=10, start_date=datetime.now())
